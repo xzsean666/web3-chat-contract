@@ -77,3 +77,17 @@
   Factory 维护了全局 `user => currentGroupIds` 索引。当用户加入或退出群组时，需要通知 Factory 增删该索引。如果该接口无权限保护，恶意第三方可伪造群组调用 Factory 篡改任意用户的群组列表。
 - **决策**:
   Factory 在 `createGroup` 时将部署的 GroupClone 记录到 `_isGroupClone[cloneAddress] = true`；内部回调接口（`onUserJoinedGroup`, `onUserLeftGroup`）必须校验 `require(_isGroupClone[msg.sender])`，严格阻断伪造调用。
+
+---
+
+## ADR-007: 采用 Monorepo 架构集成 @web3-chat/sdk (Viem + TypeScript)
+
+- **状态**: Accepted
+- **背景**:
+  智能合约与上层应用之间存在天然的 ABI / 类型割裂。若将 SDK 独立为完全分离的代码仓库，每次合约更新（Custom Error 增加、方法签名变更、Event 调整）都容易导致 SDK 滞后与类型脱节。同时，开发者渴望拥有类似 `const me = sdk.user()` 与 `const group = sdk.group(id)` 的极简调用体验。
+- **备选方案对比**:
+  1. *完全独立的外部 SDK 仓库*: 维护成本高，跨仓库发版与 ABI 同步延迟严重。
+  2. *仅提供合约，链下交互留给开发者手写 ethers/web3.js*: 极大增加了业务开发接入门槛，容易发生越权与未经预检导致的 Gas 浪费。
+  3. *Co-located Monorepo (Foundry + pnpm workspace + Viem)*: 合约编译直接输出 ABI 供 SDK 类型生成器消费；SDK 提供 User-centric / Group-centric 门面、预检拦截与 JSON 序列化；并在本地沙箱通过单条命令完成合约与 SDK 的端到端联合测试。
+- **决策**:
+  在根工程设立 `pnpm-workspace.yaml` 与 `sdk/` 子包（`@web3-chat/sdk`），采用现代轻量级 `viem` + `tsup`，将 SDK 研发正式纳为核心研发序列（TASK-010 与 TASK-011）。

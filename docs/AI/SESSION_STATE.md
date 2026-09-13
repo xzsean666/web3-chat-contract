@@ -15,16 +15,16 @@
    - 初始化标准 Foundry 工程，安装 `forge-std` 与 `@openzeppelin/contracts` (v5.7.0)；
    - 建立 `foundry.toml`：配置 Solidity `0.8.24`、EVM target `cancun`、优化器 runs=200、多链 RPC 与格式化规范；
    - 建立 `AGENTS.md`：严格落实 `/ssd0/git` 账号路由规则（指定 GitHub 账号 `xzsean666`，遵循 `pnpm` / `uv` / `gh` 铁律）；
-   - 建立 `package.json`：配置 pnpm 常用脚本；
+   - 建立 Monorepo 协同架构：`pnpm-workspace.yaml`、根目录 `package.json` 及 `sdk/` 子包（`@web3-chat/sdk`），配置 `viem` + `tsup` + `vitest`；
    - 建立 `.env.example` 与 `.gitignore`。
 2. **AI 标准工程文档体系 (Source of Truth)**：
    - `docs/AI_BLOCKCHAIN_AGENT_PROMPT.md`: 通用区块链智能合约 AI Agent 研发规范全集；
    - `docs/DEPLOYMENT.md`: 多链部署架构、Anvil 本地沙箱演练与验证指南；
-   - `docs/AI/GOAL.md`: 协议目标、技术原则、Included / Excluded 范围划定；
-   - `docs/AI/ARCHITECTURE.md`: 系统拓扑、存储紧凑打包（Slot Packing）、数学不变量与威胁模型；
-   - `docs/AI/DECISIONS.md`: ADR-001 ~ ADR-006 架构决策记录；
-   - `docs/AI/TASK_INDEX.md`: TASK-001 至 TASK-009 依赖拓扑与任务清单；
-   - `docs/AI/tasks/TASK-001.md`: 首个就绪任务卡片。
+   - `docs/AI/GOAL.md`: 协议目标、技术原则、包含 `@web3-chat/sdk` 的完整 MVP 范围划定；
+   - `docs/AI/ARCHITECTURE.md`: 系统拓扑、存储紧凑打包（Slot Packing）、数学不变量、威胁模型及 SDK 门面类图；
+   - `docs/AI/DECISIONS.md`: ADR-001 ~ ADR-007 架构决策记录（含 SDK 架构选型）；
+   - `docs/AI/TASK_INDEX.md`: TASK-001 至 TASK-011 依赖拓扑与任务清单；
+   - `docs/AI/tasks/TASK-001.md`, `TASK-010.md`, `TASK-011.md`: 任务卡片。
 
 ---
 
@@ -33,9 +33,13 @@
 - **新建文件**:
   - `AGENTS.md`
   - `package.json`
+  - `pnpm-workspace.yaml`
   - `.gitignore`
   - `foundry.toml`
   - `.env.example`
+  - `sdk/package.json`
+  - `sdk/tsconfig.json`
+  - `sdk/src/index.ts`
   - `docs/AI_BLOCKCHAIN_AGENT_PROMPT.md`
   - `docs/DEPLOYMENT.md`
   - `docs/AI/GOAL.md`
@@ -43,6 +47,8 @@
   - `docs/AI/DECISIONS.md`
   - `docs/AI/TASK_INDEX.md`
   - `docs/AI/tasks/TASK-001.md`
+  - `docs/AI/tasks/TASK-010.md`
+  - `docs/AI/tasks/TASK-011.md`
   - `docs/AI/SESSION_STATE.md`
 - **清理文件**:
   - 清理 Foundry 默认模板（`src/Counter.sol`, `script/Counter.s.sol`, `test/Counter.t.sol`）

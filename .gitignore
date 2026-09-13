@@ -6,6 +6,7 @@ broadcast/
 # Node & pnpm
 node_modules/
 .pnpm-store/
+dist/
 
 # Environment & Secrets
 .env

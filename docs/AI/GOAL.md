@@ -104,6 +104,28 @@
 - [x] **Group Lifecycle**:
   - `pause()`, `resume()`, `close()`（关闭为终态，不强制链上全量遍历清理成员，保留低 Gas 表现）
 
+#### E. @web3-chat/sdk (TypeScript 强类型客户端 SDK)
+- [x] **User-centric API**:
+  - `sdk.user()`: 获取当前登录用户的统一操作客户端
+  - `me.getState()` / `me.setState(stateObj)`: 自动完成 JSON 序列化与尺寸校验
+  - `me.getMetadata()` / `me.setMetadata(profileObj)`: 个人展示名片管理
+  - `me.getFriends(offset, limit)` / `me.isFriend(addr)`: 好友查询
+  - `me.setFriendMetadata(friendAddr, noteObj)`: 本地好友备注设置
+  - `me.getCurrentUser()` / `me.getMyOverview()`: 一站式聚合个人状态、展示资料、好友与群组
+- [x] **Group-centric API**:
+  - `sdk.group(groupId)`: 获取指定群组的高级操作客户端
+  - `group.getState()` / `group.getMetadata()`: 群核心状态与公共资料获取
+  - `group.setMetadata(groupProfileObj)`: 群主更新公共资料
+  - `group.getMembers(offset, limit)` / `group.getMember(addr)`: 成员查询与群内名片获取
+  - `group.setMyMetadata(profileObj)`: 成员更新自身在群内的名片
+  - `group.getGroupOverview()`: 一站式聚合群元数据、所有者、状态、成员数与设置
+- [x] **Relationship API**:
+  - 好友申请生命周期包装：`sdk.relationship.sendRequest()`, `acceptRequest()`, `rejectRequest()`, `removeFriend()`, `block()`, `unblock()`
+- [x] **Safety & Simulation (交易预检与 Gas 保护)**:
+  - 写操作广播前默认开启 `simulateContract` 本地模拟，精准提前拦截 `GroupFull`、`UserBlocked`、`Unauthorized` 等 Custom Error，避免用户损失 Gas。
+- [x] **JSON Schema 校验与防超限**:
+  - 客户端提前检测 UTF-8 字节大小（User/State ≤ 4KB, Group ≤ 8KB, Member/Friend ≤ 2KB），杜绝链上 Revert。
+
 ---
 
 ### 3.2 Excluded from MVP (明确排除的非本期内容)

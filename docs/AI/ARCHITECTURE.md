@@ -223,9 +223,79 @@ Group Status:
 
 ## 5. Off-chain & Client Integration (链下客户端与强类型 SDK 集成)
 
-1. **强类型 SDK 抽象 (User-centric & Group-centric)**：
-   - 开发者通过统一的 `sdk.user()` 与 `sdk.group(groupId)` 交互，底层自动解析对应的 Clone 合约地址，无需关心 Clone 的具体工厂调用；
-2. **交易本地模拟 (eth_call / simulateContract)**：
-   - SDK 在向链上发送交易前，自动通过本地节点预估并模拟执行，提前捕获群人数已满（`GroupFull`）、被拉黑（`UserBlocked`）、权限不足（`Unauthorized`）等 Custom Error，避免用户损耗 Gas；
-3. **事件驱动增量同步 (Incremental Event Indexing)**：
-   - 链下 Indexer / 消息服务器仅需订阅 Factory 与各 Clone 发出的标准事件（`MemberJoined`, `MemberBanned`, `FriendRequestAccepted`），即可构建实时高速状态缓存。
+### 5.1 @web3-chat/sdk 客户端包架构
+```text
+@web3-chat/sdk (packages/sdk 或 sdk/)
+├── src/
+│   ├── ChatSDK.ts            # 主入口单例，管理 PublicClient 与 WalletClient
+│   ├── UserClient.ts         # User-centric 门面 (getCurrentUser, getState, getMetadata, getFriends...)
+│   ├── GroupClient.ts        # Group-centric 门面 (getGroupOverview, getMembers, moderation, batch...)
+│   ├── RelationshipClient.ts # 双向好友流转 (sendRequest, accept, block, mute...)
+│   ├── abi/                  # 与 Foundry 编译同步的强类型 Viem ABI 定义
+│   ├── types/                # UserMetadata, GroupMetadata, Overview 等 TypeScript 契约
+│   └── utils/                # UTF-8 JSON 序列化、字节限制校验、simulateContract 拦截包装
+```
+
+### 5.2 核心类职责与调用模式
+```mermaid
+classDiagram
+    class ChatSDK {
+        +publicClient: PublicClient
+        +walletClient: WalletClient
+        +factoryAddress: Address
+        +user(userAddress?: Address): UserClient
+        +group(groupId: bigint): GroupClient
+        +relationship: RelationshipClient
+        +getCurrentUser(): Promise~ChatUserOverview~
+        +getGroupOverview(groupId: bigint): Promise~ChatGroupOverview~
+    }
+
+    class UserClient {
+        +address: Address
+        +cloneAddress: Address
+        +getState(): Promise~any~
+        +setState(state: any): Promise~Hash~
+        +getMetadata(): Promise~any~
+        +setMetadata(profile: any): Promise~Hash~
+        +getFriends(offset: bigint, limit: bigint): Promise~Address[]~
+        +setFriendMetadata(friend: Address, meta: any): Promise~Hash~
+        +block(target: Address): Promise~Hash~
+    }
+
+    class GroupClient {
+        +groupId: bigint
+        +cloneAddress: Address
+        +getState(): Promise~any~
+        +getMetadata(): Promise~any~
+        +setMetadata(profile: any): Promise~Hash~
+        +getMembers(offset: bigint, limit: bigint): Promise~MemberView[]~
+        +join(): Promise~Hash~
+        +leave(): Promise~Hash~
+        +batchAddMembers(members: Address[]): Promise~Hash~
+        +batchBanMembers(members: Address[], duration: bigint): Promise~Hash~
+        +setMyMetadata(profile: any): Promise~Hash~
+    }
+
+    class RelationshipClient {
+        +sendRequest(target: Address): Promise~Hash~
+        +acceptRequest(requester: Address): Promise~Hash~
+        +rejectRequest(requester: Address): Promise~Hash~
+        +removeFriend(friend: Address): Promise~Hash~
+    }
+
+    ChatSDK --> UserClient
+    ChatSDK --> GroupClient
+    ChatSDK --> RelationshipClient
+```
+
+### 5.3 交易预检与本地模拟 (Pre-flight Simulation)
+所有具有状态写入的操作，SDK 内部均默认封装以下管道：
+1. **尺寸边界静态核验**：在内存中核算 UTF-8 编码字节数，若 `UserMetadata > 4096` 或 `GroupMetadata > 8192` 直接抛出客户端错误，拒绝发送；
+2. **链上预执行 (`publicClient.simulateContract`)**：通过本地 RPC 模拟交易，若命中 Custom Error（如 `AlreadyFriends()`, `GroupFull()`, `UserBlocked()`），直接格式化为友好异常，零 Gas 损耗；
+3. **真实上链广播 (`walletClient.writeContract`)** 并可选等待回执。
+
+### 5.4 事件驱动增量同步 (Incremental Event Indexing)
+SDK 暴露标准 Viem 事件监听接口：
+- `sdk.watchFriendEvents(user, callback)`
+- `sdk.watchGroupEvents(groupId, callback)`
+链下 Chat 消息服务器通过订阅链上日志，无缝维护在线状态与权限校验缓存。

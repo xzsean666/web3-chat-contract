@@ -1,0 +1,36 @@
+{
+  "name": "@web3-chat/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for EVM Chat State Storage Protocol",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "web3",
+    "chat",
+    "evm",
+    "viem",
+    "social",
+    "state-storage"
+  ],
+  "author": "xzsean666",
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}
