@@ -6,6 +6,7 @@ import {
   MAX_USER_METADATA_SIZE,
   MAX_USER_STATE_SIZE,
   type ChatUserOverview,
+  type EventWatchOptions,
   type FriendRecordView,
   type FriendStatus,
   type FriendView,
@@ -343,5 +344,17 @@ export class UserClient {
     });
 
     return wallet.writeContract(request);
+  }
+
+  // --- Event Subscriptions ---
+
+  public watchEvents(options: EventWatchOptions): () => void {
+    return this.publicClient.watchContractEvent({
+      address: this.cloneAddress,
+      abi: UserImplementationABI,
+      onLogs: options.onLogs,
+      onError: options.onError,
+      pollingInterval: options.pollingInterval,
+    });
   }
 }

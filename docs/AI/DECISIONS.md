@@ -152,6 +152,45 @@
   链上 Profile/State 元数据允许存储任意 UTF-8 JSON 字符串。若应用层 SDK 直接调用未过滤的 `JSON.parse`，恶意用户可能构造包含 `__proto__` 或 `constructor.prototype` 的攻击载荷，污染 Node.js 或浏览器的原型链。同时，RPC 节点遭遇 HTTP 429 限流时若紧凑死循环重试，易引发雪崩效应。
 - **决策**:
   1. 在 `sdk/src/utils/json.ts` 中实现带有 `safeReviver` 的反原型污染解析器，强制过滤并剔除敏感属性键；
-  2. 在 `sdk/src/utils/rpcPool.ts` 中引入指数退避（Exponential Backoff with Jitter），并在 `finally` 块中强制回收 `clearTimeout`，杜绝长连接定时器泄露。
+  2. 在 `sdk/src/utils/rpcPool.ts` 中引入指数退避（Exponential Backoff with Jitter），并在 `finally`块中强制回收 `clearTimeout`，杜绝长连接定时器泄露。
 
+---
 
+## ADR-013: 架构与工具链统一为 Universal Hardhat + TypeScript Viem 规范 (Architecture & Tooling Unification)
+
+- **状态**: Accepted (Architecture Unification)
+- **背景**:
+  项目初期在工具链配置中偏离了最初的架构设计，混入了 Foundry/Forge 配置。根据用户的核心设计规范《Universal Hardhat + SDK Blockchain Engineering Agent Protocol》，工程体系必须固定为 Hardhat + TypeScript + Viem，禁止混用 Foundry/Forge 或引入 ethers.js / web3.js。且合约与 SDK 业务代码已完成，必须保持零代码破坏。
+- **决策**:
+  1. **Monorepo 目录统一**: 将合约从 `src/` 规整至 `contracts/`，测试目录保持在 `test/`，脚本规整至 `scripts/`，新建 `deployments/` 记录部署元数据，保持 `sdk/` 与 `docs/`；
+  2. **智能合约框架统一**: 采用 Hardhat + Solidity 0.8.24 (cancun) + `@openzeppelin/contracts`；
+  3. **测试框架统一**: 采用 Hardhat Test (`@nomicfoundation/hardhat-toolbox-viem` + TypeScript + viem)，测试覆盖 Factory, User, Group, Relationship 及全链路流程；
+  4. **清理遗留工具**: 彻底移除 `foundry.toml`, `foundry.lock`, `lib/forge-std`, `lib/openzeppelin-contracts`, `.gitmodules`；
+  5. **自动化产物兼容**: 配置 `scripts/sync-artifacts.js`，保证 Hardhat 编译产物无缝同步至 SDK 测试沙箱，确保 SDK 代码 100% 保持不变且测试全绿；
+  6. **文档全面对齐**: 更新 `AGENTS.md`, `CONTRIBUTING.md`, `docs/AI_BLOCKCHAIN_AGENT_PROMPT.md`, `GOAL.md`, `ARCHITECTURE.md`, `TASK_INDEX.md`, `SESSION_STATE.md`, `DEPLOYMENT.md`, `README.md`。
+
+---
+
+## ADR-014: 全方位安全强化、算术溢出防范、状态机严谨性与 SDK 事件同步体系 (Comprehensive Security, Math Safety & SDK Event-Driven Upgrade)
+
+- **状态**: Accepted (Security, Gas & SDK Enhancement)
+- **背景**:
+  对全仓库合约与 SDK 进行深度审计后，发现以下优化与安全加固点：
+  1. **分页算术溢出风险**: 合约全部 6 个分页方法中使用了 `offset + limit`，若客户端传入极大 limit（如 `type(uint256).max`），在 Solidity 0.8+ 下将触发 Panic(0x11) 溢出报错；
+  2. **UserDisabled 校验遗漏**: `UserDisabled` 自定义错误已在接口中定义并引入，但在 `RelationshipManager`（好友申请与接受）以及 `UserImplementation`（资料与状态修改）中未执行实际校验；
+  3. **禁言状态机与名片保护**: 被禁言群成员仍可修改群内名片进行恶意广告轮播；且对非成员禁言未抛出 `MemberNotFound`；
+  4. **群主移交角色降级一致性**: 原成员被转让为群主后，后续若再次移交所有权，存储槽中的旧角色会导致其被降级为 `Role.MEMBER`，违反原群主保留 `Role.ADMIN` 不变量；
+  5. **双向申请状态核验**: `acceptFriendRequest` 仅核验了接收方的 `PENDING_IN`，未对称核验请求方的 `PENDING_OUT`；
+  6. **SDK 缺失事件监听**: 架构文档中规划了事件驱动增量同步，但 SDK 未暴露对应 Viem Event Watcher 封装；
+  7. **RPC 节点 200 响应体内限流阻断**: 某些 RPC 节点返回 HTTP 200 但在 Body 内携带 `code: -32005 / 429` 报错，导致调度池未触发故障转移。
+- **决策**:
+  1. **分页边界数学守恒优化**: 统一重构所有分页逻辑为 `uint256 count = limit > total - offset ? total - offset : limit;`，彻底消除加法溢出，节省局部变量与 Gas；
+  2. **UserDisabled 全链路封堵**: 在 `RelationshipManager` 与 `UserImplementation` 的状态变更函数中强制校验用户禁用状态；
+  3. **禁言防绕过与名片保护**: 禁言操作要求目标必须为有效成员；在 `setMyMetadata` 中检查禁言状态，被禁言者修改名片直接 revert `MemberMuted`；时间戳溢出增加安全保护；
+  4. **所有权角色守恒修复**: 在 `acceptOwnership()` 中显式将前群主与新群主的基础角色记录置为 `Role.ADMIN`，保障无论所有权如何流转，前群主均锁定保留 `Role.ADMIN`；
+  5. **双向申请对称闭环**: `acceptFriendRequest` 强制核验 `requesterClone.getFriend(msg.sender).status == PENDING_OUT`；
+  6. **SDK 事件驱动层完整落地**: 在 `ChatSDK`, `UserClient`, `GroupClient`, `RelationshipClient` 中封装强类型 `watchEvents` 接口；
+  7. **SDK 工具链与节点容灾增强**:
+     - 新增 `generateInviteCode` 与 `hashInviteCode` 密码学辅助函数；
+     - 新增 `parseChatError` 自定义错误解析器；
+     - 升级 `RpcPoolManager`，智能识别响应体内的限流与临时故障并自动完成无缝节点飘移。

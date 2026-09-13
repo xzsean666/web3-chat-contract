@@ -77,6 +77,7 @@ export class RpcPoolManager {
           return n;
         }
       }
+      return healthy[healthy.length - 1];
     }
 
     // Default: round-robin
@@ -141,7 +142,29 @@ export class RpcPoolManager {
         this.recordSuccess(node, latency);
 
         if (data.error) {
-          // JSON-RPC level error (e.g. execution reverted). Do not fail the node, but throw the RPC error
+          const errMsg = (data.error.message || "").toLowerCase();
+          const errCode = data.error.code;
+          const isRateLimitOrTemporary =
+            errCode === 429 ||
+            errCode === -32005 ||
+            errCode === -32603 ||
+            errMsg.includes("rate limit") ||
+            errMsg.includes("too many requests") ||
+            errMsg.includes("daily limit") ||
+            errMsg.includes("credits") ||
+            errMsg.includes("throughput") ||
+            errMsg.includes("timeout") ||
+            errMsg.includes("temporarily unavailable");
+
+          if (isRateLimitOrTemporary) {
+            this.recordFailure(node);
+            lastError = new Error(`RPC error (${errCode}) from ${node.url}: ${data.error.message}`);
+            const backoffMs = Math.min(50 * Math.pow(2, attempt) + Math.random() * 25, 400);
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            continue;
+          }
+
+          // JSON-RPC execution revert error. Do not fail the node, but throw the RPC error
           const err = new Error(data.error.message || "RPC Error");
           (err as any).code = data.error.code;
           (err as any).data = data.error.data;

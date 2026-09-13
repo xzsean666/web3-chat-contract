@@ -16,6 +16,16 @@
 ### 核心设计哲学
 > **“User 自己管理自己的个人状态和社交关系；Group 管理自己的群状态和成员状态；Factory 负责全局索引和对象发现；Metadata 使用可扩展 JSON；消息和实时数据保持在链下。”**
 
+### 1.1 固定技术栈与 Monorepo 规范
+严格遵循 Universal Hardhat + SDK Blockchain Engineering Agent Protocol：
+- **智能合约**: Solidity 0.8.24 (cancun) + Hardhat
+- **标准合约库**: OpenZeppelin Contracts
+- **测试框架**: Hardhat Test (TypeScript + viem)
+- **客户端 SDK**: TypeScript + viem (`@web3-chat/sdk`)
+- **包管理器**: pnpm
+- **目录规范**: `contracts/`, `test/`, `scripts/`, `deployments/`, `sdk/`, `docs/`
+- **禁止项**: 严禁使用 Foundry / Forge、ethers.js、web3.js。
+
 ---
 
 ## 2. Core Design Goals (核心技术目标)

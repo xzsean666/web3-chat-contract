@@ -149,3 +149,10 @@ export interface ChatSDKOptions {
     };
   };
 }
+
+export interface EventWatchOptions<TLog = any> {
+  onLogs: (logs: TLog[]) => void;
+  onError?: (error: Error) => void;
+  pollingInterval?: number;
+}
+

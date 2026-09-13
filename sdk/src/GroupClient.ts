@@ -5,6 +5,7 @@ import {
   MAX_GROUP_METADATA_SIZE,
   MAX_MEMBER_METADATA_SIZE,
   type ChatGroupOverview,
+  type EventWatchOptions,
   type GroupStatus,
   type JoinMode,
   type MemberRecordView,
@@ -13,6 +14,7 @@ import {
   type Role,
 } from "./types";
 import { parseMetadata, serializeMetadata } from "./utils/json";
+import { generateInviteCode, hashInviteCode } from "./utils/invite";
 
 export class GroupClient {
   public readonly groupId: bigint;
@@ -597,5 +599,35 @@ export class GroupClient {
     });
 
     return wallet.writeContract(request);
+  }
+
+  public async createInviteWithSecret(secret: string, expiresAt: bigint, maxUses: number): Promise<Hash> {
+    const codeHash = hashInviteCode(secret);
+    return this.createInvite(codeHash, expiresAt, maxUses);
+  }
+
+  public async useInviteWithSecret(secret: string): Promise<Hash> {
+    const codeHash = hashInviteCode(secret);
+    return this.useInvite(codeHash);
+  }
+
+  public static hashInviteCode(secret: string): Hex {
+    return hashInviteCode(secret);
+  }
+
+  public static generateInviteCode(prefix = "CHAT"): { secret: string; codeHash: Hex } {
+    return generateInviteCode(prefix);
+  }
+
+  // --- Event Subscriptions ---
+
+  public watchEvents(options: EventWatchOptions): () => void {
+    return this.publicClient.watchContractEvent({
+      address: this.groupAddress,
+      abi: GroupImplementationABI,
+      onLogs: options.onLogs,
+      onError: options.onError,
+      pollingInterval: options.pollingInterval,
+    });
   }
 }

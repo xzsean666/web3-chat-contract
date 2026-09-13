@@ -1,12 +1,12 @@
-# Foundry
+# Hardhat & Build Artifacts
+artifacts/
 out/
 cache/
-broadcast/
+dist/
 
 # Node & pnpm
 node_modules/
 .pnpm-store/
-dist/
 
 # Environment & Secrets
 .env

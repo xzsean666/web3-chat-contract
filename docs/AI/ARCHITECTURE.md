@@ -231,7 +231,7 @@ Group Status:
 │   ├── UserClient.ts         # User-centric 门面 (getCurrentUser, getState, getMetadata, getFriends...)
 │   ├── GroupClient.ts        # Group-centric 门面 (getGroupOverview, getMembers, moderation, batch...)
 │   ├── RelationshipClient.ts # 双向好友流转 (sendRequest, accept, block, mute...)
-│   ├── abi/                  # 与 Foundry 编译同步的强类型 Viem ABI 定义
+│   ├── abi/                  # 与 Hardhat 编译同步的强类型 Viem ABI 定义
 │   ├── types/                # UserMetadata, GroupMetadata, Overview 等 TypeScript 契约
 │   └── utils/                # UTF-8 JSON 序列化、字节限制校验、simulateContract 拦截包装
 ```
@@ -393,4 +393,47 @@ SDK 暴露标准 Viem 事件监听接口：
 - **反原型污染 (Prototype Pollution Defense)**：`parseMetadata` 采用递归 Safe Reviver 过滤 `__proto__`、`constructor`、`prototype` 属性，阻断恶意链上元数据污染前端/Node.js 全局上下文；
 - **定时器安全**：`RpcPoolManager` 在 `try ... finally` 中确保 `AbortController` 关联的 `clearTimeout` 100% 释放，杜绝高并发环境下的句柄泄露；
 - **雪崩退避 (Exponential Backoff with Jitter)**：捕获 HTTP 429 或 RPC 网络抖动时执行随机指数退避，防止大量客户端对备用 RPC 节点产生“惊群效应”。
+
+---
+
+## 7. Monorepo 工程规范与工具链体系 (Monorepo & Toolchain Specification)
+
+项目严格执行 **Universal Hardhat + SDK Blockchain Engineering Agent Protocol**：
+
+### 7.1 固定技术栈
+- **智能合约开发框架**: Hardhat + Solidity `0.8.24` (EVM target `cancun`)
+- **语言标准**: TypeScript
+- **外部标准库**: OpenZeppelin Contracts (`@openzeppelin/contracts`)
+- **测试框架**: Hardhat Test (TypeScript + viem, `@nomicfoundation/hardhat-toolbox-viem`)
+- **客户端 SDK**: TypeScript + viem (`@web3-chat/sdk`)
+- **包管理器**: pnpm
+- **严格禁令**: 禁止引入 Foundry / Forge、ethers.js、web3.js 或其他 Solidity 框架
+
+### 7.2 Monorepo 目录布局
+```text
+/
+├── contracts/          # 智能合约核心层与接口
+│   ├── ChatStorageFactory.sol
+│   ├── GroupImplementation.sol
+│   ├── RelationshipManager.sol
+│   ├── UserImplementation.sol
+│   └── interfaces/
+├── test/               # Hardhat 智能合约自动化测试套件 (TypeScript + viem)
+│   ├── unit/
+│   │   ├── InterfacesAndConstants.test.ts
+│   │   ├── UserAndRelationship.test.ts
+│   │   └── Group.test.ts
+│   └── integration/
+│       └── EndToEndChatFlow.test.ts
+├── scripts/            # 部署与运维脚本 (TypeScript + viem)
+│   ├── deploy.ts
+│   └── sync-artifacts.js
+├── deployments/        # 多链部署元数据与产物记录
+│   └── 31337.json
+├── sdk/                # 强类型 TypeScript SDK (@web3-chat/sdk)
+│   ├── src/
+│   └── test/
+└── docs/               # 系统架构、安全模型与 AI 事实源体系 (docs/AI/)
+```
+
 

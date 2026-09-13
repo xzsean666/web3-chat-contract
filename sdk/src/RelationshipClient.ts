@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import type { Address, Hash, PublicClient, WalletClient } from "viem";
 import { RelationshipManagerABI } from "./abi/RelationshipManager";
+import type { EventWatchOptions } from "./types";
 
 export class RelationshipClient {
   public readonly address: Address;
@@ -102,5 +103,17 @@ export class RelationshipClient {
     });
 
     return wallet.writeContract(request);
+  }
+
+  // --- Event Subscriptions ---
+
+  public watchEvents(options: EventWatchOptions): () => void {
+    return this.publicClient.watchContractEvent({
+      address: this.address,
+      abi: RelationshipManagerABI,
+      onLogs: options.onLogs,
+      onError: options.onError,
+      pollingInterval: options.pollingInterval,
+    });
   }
 }

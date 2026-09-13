@@ -4,6 +4,7 @@ import {
   type Address,
   type Chain,
   type Hash,
+  type Hex,
   type PublicClient,
   type Transport,
   type WalletClient,
@@ -17,10 +18,13 @@ import {
   type ChatGroupOverview,
   type ChatSDKOptions,
   type ChatUserOverview,
+  type EventWatchOptions,
   type GroupStatus,
   type UserStatus,
 } from "./types";
 import { UserClient } from "./UserClient";
+import { parseChatError, type ParsedChatError } from "./utils/errors";
+import { generateInviteCode, hashInviteCode } from "./utils/invite";
 import { parseMetadata, serializeMetadata } from "./utils/json";
 import { RpcPoolManager } from "./utils/rpcPool";
 
@@ -254,5 +258,46 @@ export class ChatSDK {
       metadataVersion: Number(overview.metadataVersion),
       metadata: parseMetadata(overview.metadata),
     };
+  }
+
+  // --- Event Subscriptions ---
+
+  public watchFactoryEvents(options: EventWatchOptions): () => void {
+    return this.publicClient.watchContractEvent({
+      address: this.factoryAddress,
+      abi: ChatStorageFactoryABI,
+      onLogs: options.onLogs,
+      onError: options.onError,
+      pollingInterval: options.pollingInterval,
+    });
+  }
+
+  public async watchGroupEvents(groupId: bigint, options: EventWatchOptions): Promise<() => void> {
+    const groupClient = await this.group(groupId);
+    return groupClient.watchEvents(options);
+  }
+
+  public async watchUserEvents(userAddress: Address, options: EventWatchOptions): Promise<() => void> {
+    const userClient = await this.user(userAddress);
+    return userClient.watchEvents(options);
+  }
+
+  public async watchRelationshipEvents(options: EventWatchOptions): Promise<() => void> {
+    const relClient = await this.relationship();
+    return relClient.watchEvents(options);
+  }
+
+  // --- Static Utilities ---
+
+  public static hashInviteCode(secret: string): Hex {
+    return hashInviteCode(secret);
+  }
+
+  public static generateInviteCode(prefix = "CHAT"): { secret: string; codeHash: Hex } {
+    return generateInviteCode(prefix);
+  }
+
+  public static parseError(error: unknown): ParsedChatError {
+    return parseChatError(error);
   }
 }

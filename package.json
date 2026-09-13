@@ -5,21 +5,35 @@
   "private": true,
   "author": "xzsean666",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "build": "pnpm run build:contracts && pnpm run build:sdk",
-    "build:contracts": "forge build",
+    "build:contracts": "hardhat compile && node scripts/sync-artifacts.js",
     "build:sdk": "pnpm --filter @web3-chat/sdk build",
     "test": "pnpm run test:contracts",
     "test:all": "pnpm run test:contracts && pnpm run test:sdk",
-    "test:contracts": "forge test",
+    "test:contracts": "hardhat test",
     "test:sdk": "pnpm --filter @web3-chat/sdk test",
-    "test:gas": "forge test --gas-report",
-    "fmt": "forge fmt",
-    "fmt:check": "forge fmt --check",
-    "clean": "forge clean"
+    "compile": "hardhat compile",
+    "deploy:local": "node scripts/deploy.ts",
+    "clean": "hardhat clean"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ignition-viem": "^3.1.6",
+    "@nomicfoundation/hardhat-keystore": "^3.0.13",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.11",
+    "@nomicfoundation/hardhat-node-test-runner": "^3.1.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@nomicfoundation/hardhat-verify": "^3.1.0",
+    "@nomicfoundation/hardhat-viem": "^3.0.9",
+    "@nomicfoundation/hardhat-viem-assertions": "^3.1.2",
+    "@openzeppelin/contracts": "^5.6.1",
+    "@types/node": "^22.20.2",
+    "hardhat": "^3.16.0",
     "prettier": "^3.3.3",
-    "prettier-plugin-solidity": "^1.4.1"
+    "prettier-plugin-solidity": "^1.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2",
+    "viem": "^2.56.3"
   }
 }
