@@ -1,0 +1,25 @@
+# Foundry
+out/
+cache/
+broadcast/
+
+# Node & pnpm
+node_modules/
+.pnpm-store/
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+
+# Logs and coverage
+*.log
+coverage/
+lcov.info
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
