@@ -91,3 +91,23 @@
   3. *Co-located Monorepo (Foundry + pnpm workspace + Viem)*: 合约编译直接输出 ABI 供 SDK 类型生成器消费；SDK 提供 User-centric / Group-centric 门面、预检拦截与 JSON 序列化；并在本地沙箱通过单条命令完成合约与 SDK 的端到端联合测试。
 - **决策**:
   在根工程设立 `pnpm-workspace.yaml` 与 `sdk/` 子包（`@web3-chat/sdk`），采用现代轻量级 `viem` + `tsup`，将 SDK 研发正式纳为核心研发序列（TASK-010 与 TASK-011）。
+
+---
+
+## ADR-008: 基于 Viem 打造高可用 RPC 连接池负载均衡器与 Multicall3 批量调用机制
+
+- **状态**: Accepted
+- **背景**:
+  去中心化聊天应用是高频交互系统。用户每次打开 App 时，都需要拉取个人 Profile、隐私设置、当前好友列表、加入的全部群组以及各群的未读配置。若使用传统的单一 RPC 地址和串行 `eth_call`，会面临两大严峻挑战：
+  1. *单点 RPC 限频与崩溃*：单一免费或商用 RPC 极易在并发查询时触发 HTTP `429 Too Many Requests`，导致前端白屏；
+  2. *高延迟瀑布流请求*：串行发送 5~10 次独立的 RPC 请求，累积网络延迟达数秒，严重破坏用户体验。
+- **备选方案对比**:
+  1. *应用层手写多节点切换与 Promise.all*: 业务开发者负担极重，错误重试容易引发死循环，且依然消耗大量独立 RPC 请求配额。
+  2. *仅使用 Viem 基础 fallback transport*: 缺乏动态调度策略，默认仅在主节点报错时才切副节点，无法将读流量均匀分摊到多个提供商（无法做到负载均衡）。
+  3. *内置 RpcPoolManager (多策略负载均衡 + 熔断自愈) + 深度整合 Multicall3*:
+     - SDK 原生支持传入 `rpcUrls: string[]`，支持 Round-Robin（轮询分流）与 Latency-Ranked（延迟优选）；
+     - 遭遇 429 或网络超时时，熔断器自动将该节点置入冷却期，并瞬时转移请求至健康备用节点；
+     - 深度接入链上 Multicall3 协议与 Viem `batch.multicall`，将 5~10 次链上读取压缩为单次 RPC 往返，网络交互成本降低 80% 以上。
+- **决策**:
+  在 `@web3-chat/sdk` 中内建 `RpcPoolManager` 负载均衡调度器与 Multicall3 请求聚合管线，向开发者提供极致可靠与低延迟的链上读取性能。
+

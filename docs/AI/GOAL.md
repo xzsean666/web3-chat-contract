@@ -121,6 +121,13 @@
   - `group.getGroupOverview()`: 一站式聚合群元数据、所有者、状态、成员数与设置
 - [x] **Relationship API**:
   - 好友申请生命周期包装：`sdk.relationship.sendRequest()`, `acceptRequest()`, `rejectRequest()`, `removeFriend()`, `block()`, `unblock()`
+- [x] **RPC Pool & Load Balancing (RPC 连接池与高可用负载均衡)**:
+  - 支持传入 RPC 节点池数组（`rpcUrls: string[]`），对外屏蔽底层多节点调度细节
+  - 负载均衡分发策略：支持轮询调度（`round-robin`）、延迟感知优先（`latency-ranked`）与权重调度
+  - 高可用故障转移（Auto-Failover & Retry）：节点发生 429 限频、超时或 5xx 故障时自动无缝飘移至健康节点重试，杜绝单点 RPC 故障瘫痪应用
+- [x] **Multicall3 RPC Batch Call (RPC 请求聚合与性能优化)**:
+  - 深度集成 Multicall3 协议与 Viem 原生批处理引擎（`batch.multicall: { batchSize, wait }`）
+  - 核心大对象一站式聚合（`getCurrentUser()`, `getGroupOverview()`）：将底层分散的个人资料、隐私状态、好友数、参与群组及版本号等多次 `eth_call` 统一打包为 1 次 RPC 往返（1 Round-Trip），极大减少 RPC 配额消耗，响应延迟降低 80%+
 - [x] **Safety & Simulation (交易预检与 Gas 保护)**:
   - 写操作广播前默认开启 `simulateContract` 本地模拟，精准提前拦截 `GroupFull`、`UserBlocked`、`Unauthorized` 等 Custom Error，避免用户损失 Gas。
 - [x] **JSON Schema 校验与防超限**:

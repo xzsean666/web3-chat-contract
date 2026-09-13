@@ -22,7 +22,7 @@
    - `docs/DEPLOYMENT.md`: 多链部署架构、Anvil 本地沙箱演练与验证指南；
    - `docs/AI/GOAL.md`: 协议目标、技术原则、包含 `@web3-chat/sdk` 的完整 MVP 范围划定；
    - `docs/AI/ARCHITECTURE.md`: 系统拓扑、存储紧凑打包（Slot Packing）、数学不变量、威胁模型及 SDK 门面类图；
-   - `docs/AI/DECISIONS.md`: ADR-001 ~ ADR-007 架构决策记录（含 SDK 架构选型）；
+   - `docs/AI/DECISIONS.md`: ADR-001 ~ ADR-008 架构决策记录（含 SDK 架构、RPC 池负载均衡与 Multicall3 批量调用选型）；
    - `docs/AI/TASK_INDEX.md`: TASK-001 至 TASK-011 依赖拓扑与任务清单；
    - `docs/AI/tasks/TASK-001.md`, `TASK-010.md`, `TASK-011.md`: 任务卡片。
 

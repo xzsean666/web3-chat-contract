@@ -288,13 +288,83 @@ classDiagram
     ChatSDK --> RelationshipClient
 ```
 
-### 5.3 交易预检与本地模拟 (Pre-flight Simulation)
+### 5.3 RPC 连接池与负载均衡架构 (RPC Pool & Load Balancing)
+当上层应用或前端面对大量并发查询与多 RPC 节点时，SDK 内置 `RpcPoolManager` / `LoadBalancedTransport`，实现智能流量分发与故障隔离：
+
+```mermaid
+flowchart TD
+    subgraph App["Chat Application"]
+        Call["sdk.getCurrentUser() / sdk.getGroupOverview()"]
+    end
+
+    subgraph Pool["SDK RpcPoolManager (负载均衡器)"]
+        Router{"调度分发策略\n(Strategy Engine)"}
+        Health["健康探针与熔断器\n(Circuit Breaker & 429 Backoff)"]
+        Router -->|Round-Robin| R1["RPC 节点 1 (Alchemy)"]
+        Router -->|Latency-Ranked| R2["RPC 节点 2 (Infura)"]
+        Router -->|Fallback| R3["RPC 节点 3 (QuickNode)"]
+        Router -->|Backup| R4["RPC 节点 4 (Public RPC)"]
+        Health -.->|标记不可用 / 熔断冷却| Router
+    end
+
+    subgraph Nodes["EVM 网络节点"]
+        R1 --> Node1["Ethereum / Base Node 1"]
+        R2 --> Node2["Ethereum / Base Node 2"]
+        R3 --> Node3["Ethereum / Base Node 3"]
+        R4 --> Node4["Ethereum / Base Node 4"]
+    end
+
+    Call --> Router
+```
+
+#### 负载均衡调度机制：
+1. **输入参数**：SDK 初始化接收节点池列表 `rpcUrls: string[]`（或带权重的配置对象列表 `RpcNodeConfig[]`）；
+2. **分发模式 (Load Balancing Strategy)**：
+   - `round-robin`（默认）：均匀轮询，将压力线性分摊至各独立节点提供商，化解单节点并发配额上限；
+   - `latency-ranked`：动态滑动窗口测速，优先将请求发往近期 RTT 最小的优质节点；
+   - `weight-based`：依据付费等级或权重配额（如专线节点 70%，公共备用 30%）按比例分流；
+3. **熔断器与自愈 (Failover & Circuit Breaker)**：
+   - 捕获 `429 Too Many Requests`、`ETIMEDOUT` 或 `5xx` 时，自动标记该节点进入冷却倒计时（默认 10s~30s）；
+   - 请求立即自动无缝飘移重试至池内下一个健康节点，上层应用感知为 0 报错。
+
+---
+
+### 5.4 Multicall3 RPC 批量聚合调用 (Batching & Single Round-Trip)
+为了杜绝传统 Web3 应用加载页面时出现的“瀑布流式” N 次连续 RPC 阻塞，SDK 深度融合 **Multicall3 (`0xca11bde05977b3631167028862be2a173976ca11`)** 与 Viem 批处理管道：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor App as Chat Application
+    participant SDK as @web3-chat/sdk
+    participant Pool as RPC Load Balancer
+    participant RPC as Target EVM RPC (Multicall3)
+
+    Note over App,SDK: 触发聚合查询：sdk.getCurrentUser(userAddr)
+    SDK->>SDK: 打包 5 项只读查询请求：<br/>1. user.account()<br/>2. user.status()<br/>3. user.getMetadata()<br/>4. user.getState()<br/>5. factory.getUserGroups(user, 0, 50)
+    SDK->>Pool: 提交单个 Multicall3.aggregate3() RPC 载荷
+    Pool->>RPC: 负载均衡路由并发送单笔 eth_call (1 次网络往返)
+    RPC-->>Pool: 返回批量执行字节码结果集 (Success Flags + ReturnData)
+    Pool-->>SDK: 批量解包与强类型解码
+    SDK-->>App: 返回完整 ChatUserOverview 复合对象 (耗时压缩至单次 RTT)
+```
+
+#### 批处理实现细节：
+- **微任务隐式合并 (Tick-level Auto-batching)**：配置 `batch.multicall: { batchSize: 1024, wait: 16 }`，同一事件循环周期（16ms）内散落在不同业务代码中的 `eth_call` 自动由 Viem 打包为一次 Multicall3 批量调用；
+- **显式复合 API 封装**：`getCurrentUser()` 与 `getGroupOverview()` 内部直接构造原子 Multicall3 调用，一次 RPC 即可拉齐所有状态与元数据；
+- **容错隔离 (`allowFailure: true`)**：单个子查询异常不会导致整个 Batch 崩溃，确保部分展示数据缺失时核心视图仍可降级呈现。
+
+---
+
+### 5.5 交易预检与本地模拟 (Pre-flight Simulation)
 所有具有状态写入的操作，SDK 内部均默认封装以下管道：
 1. **尺寸边界静态核验**：在内存中核算 UTF-8 编码字节数，若 `UserMetadata > 4096` 或 `GroupMetadata > 8192` 直接抛出客户端错误，拒绝发送；
 2. **链上预执行 (`publicClient.simulateContract`)**：通过本地 RPC 模拟交易，若命中 Custom Error（如 `AlreadyFriends()`, `GroupFull()`, `UserBlocked()`），直接格式化为友好异常，零 Gas 损耗；
 3. **真实上链广播 (`walletClient.writeContract`)** 并可选等待回执。
 
-### 5.4 事件驱动增量同步 (Incremental Event Indexing)
+---
+
+### 5.6 事件驱动增量同步 (Incremental Event Indexing)
 SDK 暴露标准 Viem 事件监听接口：
 - `sdk.watchFriendEvents(user, callback)`
 - `sdk.watchGroupEvents(groupId, callback)`
