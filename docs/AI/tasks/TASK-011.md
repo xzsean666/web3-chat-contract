@@ -43,9 +43,9 @@
 
 ## 5. Acceptance Criteria (验收标准)
 
-- [ ] 本地沙箱 E2E 测试用例 100% 通过（`pnpm run test:sdk`）；
-- [ ] 覆盖用户生命周期、好友握手、群组生命周期与聚合视图；
-- [ ] 异常拦截（Revert / Custom Error）经过真实断言验证。
+- [x] 本地沙箱 E2E 测试用例 100% 通过（`pnpm run test:sdk`）；
+- [x] 覆盖用户生命周期、好友握手、群组生命周期与聚合视图；
+- [x] 异常拦截（Revert / Custom Error）经过真实断言验证。
 
 ---
 
@@ -59,4 +59,5 @@ pnpm run test:all
 
 ## 7. Status
 
-TODO
+DONE
+

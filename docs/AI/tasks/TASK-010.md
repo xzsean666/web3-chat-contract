@@ -68,12 +68,12 @@
 
 ## 6. Acceptance Criteria (验收标准)
 
-- [ ] `pnpm run build:sdk` 编译成功，输出 CJS、ESM 及 `.d.ts` 类型定义文件；
-- [ ] 支持传入 `rpcUrls: string[]` 并提供通过单元测试验证的 `round-robin` 负载均衡与节点健康熔断机制；
-- [ ] `getCurrentUser()` 与 `getGroupOverview()` 成功经由 Multicall3 批处理执行，单次 RPC 往返获取完整数据；
-- [ ] SDK 提供符合规范的 `sdk.user()` 与 `sdk.group(groupId)` 极简开发体验；
-- [ ] JSON 序列化与尺寸边界检查通过针对性单元测试；
-- [ ] 代码通过 ESLint / Prettier 校验。
+- [x] `pnpm run build:sdk` 编译成功，输出 CJS、ESM 及 `.d.ts` 类型定义文件；
+- [x] 支持传入 `rpcUrls: string[]` 并提供通过单元测试验证的 `round-robin` 负载均衡与节点健康熔断机制；
+- [x] `getCurrentUser()` 与 `getGroupOverview()` 成功经由 Multicall3 批处理执行，单次 RPC 往返获取完整数据；
+- [x] SDK 提供符合规范的 `sdk.user()` 与 `sdk.group(groupId)` 极简开发体验；
+- [x] JSON 序列化与尺寸边界检查通过针对性单元测试；
+- [x] 代码通过 ESLint / Prettier 校验。
 
 ---
 
@@ -82,10 +82,11 @@
 ```bash
 pnpm run build:sdk
 pnpm --filter @web3-chat/sdk test
+pnpm --filter @web3-chat/sdk typecheck
 ```
 
 ---
 
 ## 8. Status
 
-TODO
+DONE

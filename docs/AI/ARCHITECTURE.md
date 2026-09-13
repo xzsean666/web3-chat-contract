@@ -117,15 +117,15 @@ Slot 0: uint256 public groupId;
 Slot 1: [address owner (20B)] [uint8 status (1B)] [uint8 joinMode (1B)] (剩余 10B 预留)
 Slot 2: address public pendingOwner; (两步所有权确认)
 Slot 3: uint256 public maxMembers; (0 = 无上限)
-Slot 4: uint256 public memberCount;
-Slot 5: uint32 public metadataVersion;
-Slot 6: bytes internal _metadata; (群公共资料 UTF-8 JSON，上限 8KB)
-Slot 7: mapping(address => MemberRecord) internal _members;
-Slot 8: address[] internal _memberList; (仅存放当前有效成员地址)
-Slot 9: mapping(address => uint256) internal _memberIndex; (1-based index 用于 O(1) swap-and-pop)
-Slot 10: mapping(address => bytes) internal _memberMetadata; (成员在群内的名片，上限 2KB)
-Slot 11: mapping(address => uint32) internal _memberMetadataVersion;
-Slot 12: mapping(bytes32 => InviteRecord) internal _invites;
+Slot 4: uint32 public metadataVersion; (优化：消除了原 memberCount SSTORE 冗余槽，memberCount() 直读 _memberList.length)
+Slot 5: bytes internal _metadata; (群公共资料 UTF-8 JSON，上限 8KB)
+Slot 6: mapping(address => MemberRecord) internal _members;
+Slot 7: address[] internal _memberList; (仅存放当前有效成员地址)
+Slot 8: mapping(address => uint256) internal _memberIndex; (1-based index 用于 O(1) swap-and-pop)
+Slot 9: mapping(address => bytes) internal _memberMetadata; (成员在群内的名片，上限 2KB)
+Slot 10: mapping(address => uint32) internal _memberMetadataVersion;
+Slot 11: mapping(bytes32 => InviteRecord) internal _invites;
+Slot 12: address public factory;
 ```
 
 #### MemberRecord 结构体紧凑打包 (恰好 1 个 Slot / 26 Bytes)：
@@ -369,3 +369,28 @@ SDK 暴露标准 Viem 事件监听接口：
 - `sdk.watchFriendEvents(user, callback)`
 - `sdk.watchGroupEvents(groupId, callback)`
 链下 Chat 消息服务器通过订阅链上日志，无缝维护在线状态与权限校验缓存。
+
+---
+
+## 6. Security Architecture & Audit Hardening (安全架构与审计强化)
+
+### 6.1 黑名单绝对屏障 (Blacklist Tamper-proofing & Anti-Bypass)
+- **隔离原则**：拉黑（`UserBlocked`）属于单边不可逆惩罚权利。在 `UserImplementation.removeFriendFromManager` 与 `setRelationshipFromManager` 中，若当前状态为 `FriendStatus.BLOCKED`，禁止外部重置为 `NONE` 或覆盖。
+- **杜绝穿透**：被拉黑方单方面调用 `removeFriend` 绝不能撤销受害方对其实施的拉黑记录，彻底封堵利用关系解除清洗黑名单的漏洞。
+
+### 6.2 动态热升级自愈式寻址 (Self-Healing Manager Upgrade)
+- **自愈机制**：UserClone 的 `onlyRelationshipManager` 优先执行 Slot 8 缓存比对（1 SLOAD，极速）；若不匹配，自动调用 `IChatStorageFactory(factory).relationshipManager()` 核验最新全局地址并就地刷新缓存。
+- **零停机升级**：Factory 更换 `relationshipManager` 后，全网所有已部署用户克隆即时自动生效，无须重部署或重新初始化。
+
+### 6.3 好友申请过期时间戳校验 (Friend Request Expiry Enforcement)
+- **时效约束**：好友申请支持可选时间戳 `expiresAt`；`acceptFriendRequest` 强制校验当前区块时间，过期立即抛出 `RequestExpired()` 拒绝接受；
+- **死锁防范**：当存在已过期的请求时，`sendFriendRequest` 自动判定该请求已失效，允许发起方重新发送新请求，避免状态机陷入死锁。
+
+### 6.4 Factory 治理与所有权安全 (Factory Ownership Governance)
+- **所有权安全**：`ChatStorageFactory` 支持 `transferOwnership(newOwner)`，允许部署者将合约管理权安全移交给多签钱包（如 Gnosis Safe）或 Timelock 治理合约，杜绝单点私钥风险。
+
+### 6.5 SDK 安全防御与资源回收 (SDK Security & Resource Management)
+- **反原型污染 (Prototype Pollution Defense)**：`parseMetadata` 采用递归 Safe Reviver 过滤 `__proto__`、`constructor`、`prototype` 属性，阻断恶意链上元数据污染前端/Node.js 全局上下文；
+- **定时器安全**：`RpcPoolManager` 在 `try ... finally` 中确保 `AbortController` 关联的 `clearTimeout` 100% 释放，杜绝高并发环境下的句柄泄露；
+- **雪崩退避 (Exponential Backoff with Jitter)**：捕获 HTTP 429 或 RPC 网络抖动时执行随机指数退避，防止大量客户端对备用 RPC 节点产生“惊群效应”。
+

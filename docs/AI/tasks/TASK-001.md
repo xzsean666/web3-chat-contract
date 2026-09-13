@@ -55,12 +55,12 @@
 
 ## 6. Acceptance Criteria (验收标准)
 
-- [ ] 完整定义 `ChatDataTypes.sol`（包含所有枚举与紧凑结构体定义）。
-- [ ] 完整定义 `ChatErrors.sol`（包含涵盖各种边界条件的自定义错误）。
-- [ ] 完整定义 `ChatEvents.sol`（包含所有用户、群组、成员、角色变动事件）。
-- [ ] 完整定义 4 个核心模块的规范接口。
-- [ ] 执行 `forge build` 静态编译 0 报错、0 警告。
-- [ ] 执行 `forge fmt --check` 代码风格检查通过。
+- [x] 完整定义 `ChatDataTypes.sol`（包含所有枚举与紧凑结构体定义）。
+- [x] 完整定义 `ChatErrors.sol`（包含涵盖各种边界条件的自定义错误）。
+- [x] 完整定义 `ChatEvents.sol`（包含所有用户、群组、成员、角色变动事件）。
+- [x] 完整定义 4 个核心模块的规范接口。
+- [x] 执行 `forge build` 静态编译 0 报错、0 警告。
+- [x] 执行 `forge fmt --check` 代码风格检查通过。
 
 ---
 
@@ -69,6 +69,7 @@
 ```bash
 forge build
 forge fmt --check
+forge test --match-path test/unit/InterfacesCompile.t.sol
 ```
 
 ---
@@ -82,4 +83,4 @@ forge fmt --check
 
 ## 9. Status
 
-TODO
+DONE

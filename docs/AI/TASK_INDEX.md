@@ -8,17 +8,17 @@
 
 ```mermaid
 flowchart TD
-    TASK001["TASK-001: 核心接口、数据类型与事件定义\n[TODO]"]
-    TASK002["TASK-002: UserImplementation 存储模型与个人状态实现\n[TODO]"]
-    TASK003["TASK-003: RelationshipManager 双向握手与协同实现\n[TODO]"]
-    TASK004["TASK-004: GroupImplementation 群组状态、成员与角色实现\n[TODO]"]
-    TASK005["TASK-005: ChatStorageFactory 全局注册表与克隆索引实现\n[TODO]"]
-    TASK006["TASK-006: User 与 Relationship 单元与边界测试套件\n[TODO]"]
-    TASK007["TASK-007: Group 成员、角色与批处理单元测试套件\n[TODO]"]
-    TASK008["TASK-008: 跨合约端到端联合集成与不变量测试套件\n[TODO]"]
-    TASK009["TASK-009: 自动化部署脚本、本地模拟与发布验证\n[TODO]"]
-    TASK010["TASK-010: TypeScript Viem Chat SDK 强类型绑定与客户端实现\n[TODO]"]
-    TASK011["TASK-011: SDK 与本地 Anvil 沙箱端到端联动测试\n[TODO]"]
+    TASK001["TASK-001: 核心接口、数据类型与事件定义\n[DONE]"]
+    TASK002["TASK-002: UserImplementation 存储模型与个人状态实现\n[DONE]"]
+    TASK003["TASK-003: RelationshipManager 双向握手与协同实现\n[DONE]"]
+    TASK004["TASK-004: GroupImplementation 群组状态、成员与角色实现\n[DONE]"]
+    TASK005["TASK-005: ChatStorageFactory 全局注册表与克隆索引实现\n[DONE]"]
+    TASK006["TASK-006: User 与 Relationship 单元与边界测试套件\n[DONE]"]
+    TASK007["TASK-007: Group 成员、角色与批处理单元测试套件\n[DONE]"]
+    TASK008["TASK-008: 跨合约端到端联合集成与不变量测试套件\n[DONE]"]
+    TASK009["TASK-009: 自动化部署脚本、本地模拟与发布验证\n[DONE]"]
+    TASK010["TASK-010: TypeScript Viem Chat SDK 强类型绑定与客户端实现\n[DONE]"]
+    TASK011["TASK-011: SDK 与本地 Anvil 沙箱端到端联动测试\n[DONE]"]
 
     TASK001 --> TASK002
     TASK001 --> TASK003
@@ -39,17 +39,18 @@ flowchart TD
 
 | 任务编号 | 任务名称 | 目标模块 | 前置依赖 | 状态 | 预期成果物 |
 |---|---|---|---|---|---|
-| **TASK-001** | 核心接口、数据类型与事件定义 | `src/interfaces/` | None (冷启动就绪) | `TODO` | `IChatStorageFactory.sol`, `IUserImplementation.sol`, `IGroupImplementation.sol`, `IRelationshipManager.sol`, `ChatErrors.sol`, `ChatEvents.sol` |
-| **TASK-002** | UserImplementation 存储模型与个人状态实现 | `src/UserImplementation.sol` | TASK-001 | `TODO` | 核心 UserClone 逻辑合约：个人 Profile、State、好友查询、好友备注、静音与拉黑 |
-| **TASK-003** | RelationshipManager 双向握手与协同实现 | `src/RelationshipManager.sol` | TASK-001, TASK-002 | `TODO` | 双向好友申请、接受、拒绝、解除、黑名单拦截协调合约 |
-| **TASK-004** | GroupImplementation 群组状态、成员与角色实现 | `src/GroupImplementation.sol` | TASK-001 | `TODO` | 群核心容器：两步所有权、角色管理、JoinMode、批量加/踢/禁言/封禁、邀请码、群内名片 |
-| **TASK-005** | ChatStorageFactory 全局注册表与克隆索引实现 | `src/ChatStorageFactory.sol` | TASK-002, TASK-003, TASK-004 | `TODO` | 工厂合约：部署 User/Group 克隆、双向 ID 映射、全局分页发现、User->Groups 索引维护与鉴权 |
-| **TASK-006** | User 与 Relationship 单元与边界测试套件 | `test/unit/UserAndRelationship.t.sol` | TASK-002, TASK-003 | `TODO` | 用户资料、好友握手、黑名单、静音、权限及尺寸限制单元测试 100% 通过 |
-| **TASK-007** | Group 成员、角色与批处理单元测试套件 | `test/unit/Group.t.sol` | TASK-004 | `TODO` | 群生命周期、角色分级防越权、批量操作、两步所有权、邀请码测试 100% 通过 |
-| **TASK-008** | 跨合约端到端联合集成与不变量测试套件 | `test/integration/EndToEndChatFlow.t.sol` | TASK-005, TASK-006, TASK-007 | `TODO` | 用户注册 -> 建群 -> 邀请加群 -> Factory 索引联动 -> 好友协同完整业务流测试 |
-| **TASK-009** | 自动化部署脚本、本地模拟与发布验证 | `script/Deploy.s.sol` | TASK-008 | `TODO` | 幂等部署脚本、Anvil 本地沙箱模拟广播通过、`deployments/` 产物自动生成 |
-| **TASK-010** | TypeScript Viem Chat SDK 强类型绑定与客户端实现 | `sdk/src/` | TASK-005, TASK-008 | `TODO` | `@web3-chat/sdk`：ChatSDK, UserClient, GroupClient, RelationshipClient, Viem ABI 导出与模拟预检 |
-| **TASK-011** | SDK 与本地 Anvil 沙箱端到端联动测试 | `sdk/test/e2e.test.ts` | TASK-009, TASK-010 | `TODO` | 本地 Anvil 自动部署合约，运行 TypeScript SDK 完成注册、建群、改名片、双向好友真实链上交互断言 |
+| **TASK-001** | 核心接口、数据类型与事件定义 | `src/interfaces/` | None (冷启动就绪) | `DONE` | `IChatStorageFactory.sol`, `IUserImplementation.sol`, `IGroupImplementation.sol`, `IRelationshipManager.sol`, `ChatErrors.sol`, `ChatEvents.sol` |
+| **TASK-002** | UserImplementation 存储模型与个人状态实现 | `src/UserImplementation.sol` | TASK-001 | `DONE` | 核心 UserClone 逻辑合约：个人 Profile、State、好友查询、好友备注、静音与拉黑 |
+| **TASK-003** | RelationshipManager 双向握手与协同实现 | `src/RelationshipManager.sol` | TASK-001, TASK-002 | `DONE` | 双向好友申请、接受、拒绝、解除、黑名单拦截协调合约 |
+| **TASK-004** | GroupImplementation 群组状态、成员与角色实现 | `src/GroupImplementation.sol` | TASK-001 | `DONE` | 群核心容器：两步所有权、角色管理、JoinMode、批量加/踢/禁言/封禁、邀请码、群内名片 |
+| **TASK-005** | ChatStorageFactory 全局注册表与克隆索引实现 | `src/ChatStorageFactory.sol` | TASK-002, TASK-003, TASK-004 | `DONE` | 工厂合约：部署 User/Group 克隆、双向 ID 映射、全局分页发现、User->Groups 索引维护与鉴权 |
+| **TASK-006** | User 与 Relationship 单元与边界测试套件 | `test/unit/UserAndRelationship.t.sol` | TASK-002, TASK-003 | `DONE` | 用户资料、好友握手、黑名单、静音、权限及尺寸限制单元测试 100% 通过 |
+| **TASK-007** | Group 成员、角色与批处理单元测试套件 | `test/unit/Group.t.sol` | TASK-004 | `DONE` | 群生命周期、角色分级防越权、批量操作、两步所有权、邀请码测试 100% 通过 |
+| **TASK-008** | 跨合约端到端联合集成与不变量测试套件 | `test/integration/EndToEndChatFlow.t.sol` | TASK-005, TASK-006, TASK-007 | `DONE` | 用户注册 -> 建群 -> 邀请加群 -> Factory 索引联动 -> 好友协同完整业务流测试 |
+| **TASK-009** | 自动化部署脚本、本地模拟与发布验证 | `script/Deploy.s.sol` | TASK-008 | `DONE` | 幂等部署脚本、Anvil 本地沙箱模拟广播通过、`deployments/` 产物自动生成 |
+| **TASK-010** | TypeScript Viem Chat SDK 强类型绑定与客户端实现 | `sdk/src/` | TASK-005, TASK-008 | `DONE` | `@web3-chat/sdk`：ChatSDK, UserClient, GroupClient, RelationshipClient, Viem ABI 导出与模拟预检 |
+| **TASK-011** | SDK 与本地 Anvil 沙箱端到端联动测试 | `sdk/test/e2e.test.ts` | TASK-009, TASK-010 | `DONE` | 本地 Anvil 自动部署合约，运行 TypeScript SDK 完成注册、建群、改名片、双向好友真实链上交互断言 |
+| **TASK-012** | 全面安全评估审计、漏洞修复与性能极致优化 | `src/`, `sdk/` | TASK-011 | `DONE` | 修复黑名单绕过/升级割裂/过期死锁/原型污染，消除群成员计数 SSTORE，65 项全量测试 100% 通过 |
 
 ---
 

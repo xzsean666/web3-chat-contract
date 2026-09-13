@@ -111,3 +111,47 @@
 - **决策**:
   在 `@web3-chat/sdk` 中内建 `RpcPoolManager` 负载均衡调度器与 Multicall3 请求聚合管线，向开发者提供极致可靠与低延迟的链上读取性能。
 
+---
+
+## ADR-009: 强黑名单不可穿透性与双向关系解除隔离设计 (Blacklist Non-Bypassability & Isolation)
+
+- **状态**: Accepted (Security Audit Fix)
+- **背景**:
+  原逻辑中，当 Alice 与 Bob 为好友，Bob 将 Alice 拉黑（`BobClone._friends[Alice] = BLOCKED`）后，若 Alice 单方面调用 `RelationshipManager.removeFriend(Bob)`，原代码无条件在双方 Clone 执行 `delete _friends[target]`，导致 Bob 的本地拉黑记录被擦除（恢复为 `NONE`），使 Alice 能够单方面撤销他人的拉黑惩罚并重新发起骚扰请求。
+- **决策**:
+  在 `UserImplementation.removeFriendFromManager(target)` 与 `setRelationshipFromManager` 中设置不可逾越的黑名单屏障：若当前记录为 `FriendStatus.BLOCKED`，禁止被 RelationshipManager 外部协同重置或覆盖删除。黑名单状态变更的唯一合法入口必须是该用户账户本人直接调用的 `unblockUser()`。
+
+---
+
+## ADR-010: 用户克隆与 RelationshipManager 热升级自愈寻址机制 (Self-Updating Manager Lookup)
+
+- **状态**: Accepted (Security & Maintainability Fix)
+- **背景**:
+  Factory 允许管理员调用 `setRelationshipManager(newManager)` 进行版本迭代升级。但既有 UserClone 在部署初始化时已将 `relationshipManager` 存入 Storage Slot。如果仅校验 `msg.sender == relationshipManager`，则一旦 Factory 升级，所有已部署历史用户的 UserClone 将永久拒绝新 Manager 的调用，导致协议割裂。
+- **决策**:
+  在 `UserImplementation.onlyRelationshipManager` 中采用“快速缓存 + 自愈回退”机制：
+  1. 优先校验 `msg.sender == relationshipManager`（极速通道，仅 1 次 SLOAD）；
+  2. 若不匹配，则回退查询 `IChatStorageFactory(factory).relationshipManager()`；若匹配最新全局 Manager，则顺带自动更新本地缓存槽 `relationshipManager = msg.sender`。既保障了 100% 向后兼容升级，又避免了每次交互都跨合约调用的额外 Gas 开销。
+
+---
+
+## ADR-011: 群成员计数存储槽消除与 Gas 极致优化 (Elimination of Redundant memberCount SSTORE)
+
+- **状态**: Accepted (Gas & Performance Optimization)
+- **背景**:
+  `GroupImplementation` 原在 Slot 4 显式维护 `uint256 public memberCount`，并在加群、退群、踢人、封禁等所有操作中执行 `memberCount = _memberList.length`。这意味着每次成员变更都需要额外进行一次昂贵的 `SSTORE` 存储槽写入操作（每次消耗 5,000 ~ 20,000 Gas）。
+- **决策**:
+  移除 `uint256 public memberCount` 存储变量，直接将 `memberCount()` 实现为只读视图函数 `function memberCount() external view override returns (uint256) { return _memberList.length; }`，对外保持 100% 接口与 ABI 兼容性，同时为协议所有成员变动操作（`join`, `leave`, `addMember`, `removeMember`, `ban`）彻底消除此项冗余 SSTORE 写入开销。
+
+---
+
+## ADR-012: SDK 元数据反原型污染 (Prototype Pollution Defense) 与 RPC 缓冲退避
+
+- **状态**: Accepted (SDK Robustness & Security)
+- **背景**:
+  链上 Profile/State 元数据允许存储任意 UTF-8 JSON 字符串。若应用层 SDK 直接调用未过滤的 `JSON.parse`，恶意用户可能构造包含 `__proto__` 或 `constructor.prototype` 的攻击载荷，污染 Node.js 或浏览器的原型链。同时，RPC 节点遭遇 HTTP 429 限流时若紧凑死循环重试，易引发雪崩效应。
+- **决策**:
+  1. 在 `sdk/src/utils/json.ts` 中实现带有 `safeReviver` 的反原型污染解析器，强制过滤并剔除敏感属性键；
+  2. 在 `sdk/src/utils/rpcPool.ts` 中引入指数退避（Exponential Backoff with Jitter），并在 `finally` 块中强制回收 `clearTimeout`，杜绝长连接定时器泄露。
+
+
