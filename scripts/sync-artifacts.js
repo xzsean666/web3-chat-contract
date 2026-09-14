@@ -6,6 +6,7 @@ const contracts = [
   "GroupImplementation",
   "ChatStorageFactory",
   "RelationshipManager",
+  "Multicall3",
 ];
 
 const root = process.cwd();
